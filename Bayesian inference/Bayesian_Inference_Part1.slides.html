@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
 
-<title>Bayesian_Inference slides</title>
+<title>Bayesian_Inference_Part1 slides</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
@@ -13202,7 +13202,7 @@ a.anchor-link {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="PY52007---Guest-lecture-on-Bayesian-Inference">PY52007 - Guest lecture on Bayesian Inference<a class="anchor-link" href="#PY52007---Guest-lecture-on-Bayesian-Inference">&#182;</a></h1><h2 id="Dr-Benjamin-T.-Vincent">Dr Benjamin T. Vincent<a class="anchor-link" href="#Dr-Benjamin-T.-Vincent">&#182;</a></h2>
+<h1 id="PY52007---Guest-lecture-on-Bayesian-Inference---Part-I">PY52007 - Guest lecture on Bayesian Inference - Part I<a class="anchor-link" href="#PY52007---Guest-lecture-on-Bayesian-Inference---Part-I">&#182;</a></h1><h2 id="Dr-Benjamin-T.-Vincent">Dr Benjamin T. Vincent<a class="anchor-link" href="#Dr-Benjamin-T.-Vincent">&#182;</a></h2>
 </div>
 </div>
 </div>
@@ -13217,23 +13217,29 @@ a.anchor-link {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Goals">Goals<a class="anchor-link" href="#Goals">&#182;</a></h1><p>In this 2 hour session we will attempt to:</p>
+<h1 id="Goals">Goals<a class="anchor-link" href="#Goals">&#182;</a></h1><p>This session will be in 2 parts. In Part I we will cover some of the background theory of Bayesian inference. More specifically we will:</p>
 <ul>
-<li>give an introduction to the theory (Part I) and practice (Part II) of Bayesian inference. </li>
-<li>focus on core conceptual ideas and differences between the Bayesian and the Frequentist approaches.</li>
-<li>work through a concrete example in code of Bayesian linear regression</li>
-<li>introduce the concepts of a posterior <em>distribution</em> to summarise what you belief after having observed data, and of a <em>Bayes Factor</em> which allows you to do hypothesis testing in a Bayesian manner. There is still a debate about the relative merits of summarising findings with posterior distributions versus Bayes Factors.</li>
-<li>provide an immediately useful practical introduction to conducting Bayesian inference using the free software JASP. In Part II we will work through a linear regression example, mirroring the worked example in Part I.</li>
+<li>Review the core conceptual ideas and differences between the Bayesian and the Frequentist approaches.</li>
+<li>Work through a concrete example, in code, of Bayesian linear regression.</li>
+<li>Introduce the concepts of a <em>posterior distribution</em> to summarise what you belief after having observed data, and of a <em>Bayes Factor</em> which allows you to do hypothesis testing in a Bayesian manner. </li>
+<li>Briefly highlight that there is still a debate about the relative merits of summarising findings with posterior distributions versus Bayes Factors.</li>
 </ul>
 
 </div>
 </div>
-</div></section></section><section><section>
+</div><div class="fragment">
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Part II will be dealt with seperately, but this will focus on practically running Bayesian analyses using the free software, <a href="https://jasp-stats.org/jasp-materials/">JASP</a>.</p>
+
+</div>
+</div>
+</div></div></section></section><section><section>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>I do <em>not</em> expect you to fully grasp everything in Part I immediately. It may take 2 or 3 readings of this to fully understand. Nevertheless, you should be able to get a good understanding of the key steps involved in Bayesian inference. You will be able to see that it is no magic and that there are a certain number of specific steps that are taken.</p>
-<p>For Part II, if you wish to follow along with the JASP parts, this should be available on student desktop computers. But it is also freely available at <a href="https://jasp-stats.org/jasp-materials/">https://jasp-stats.org/jasp-materials/</a> if you want to instal it on your own computer.</p>
 
 </div>
 </div>
@@ -13241,7 +13247,7 @@ a.anchor-link {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="PART-1---Introduction-&amp;-Theory">PART 1 - Introduction &amp; Theory<a class="anchor-link" href="#PART-1---Introduction-&amp;-Theory">&#182;</a></h1>
+<h1 id="PART-1">PART 1<a class="anchor-link" href="#PART-1">&#182;</a></h1>
 </div>
 </div>
 </div></section></section><section><section>
@@ -13375,6 +13381,21 @@ $$</p>
 
 </div>
 </div>
+</div></section></section><section><section>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[16]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Export data for optional analysis in JASP</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">})</span>
+<span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">&quot;mydata.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
 </div></section></section><section><section>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
@@ -13760,56 +13781,6 @@ height=388
 <h2 id="Posterior-distribution-versus-Bayes-Factor-debate">Posterior distribution versus Bayes Factor debate<a class="anchor-link" href="#Posterior-distribution-versus-Bayes-Factor-debate">&#182;</a></h2><p>Kruschke, J. K., &amp; Liddell, T. M. (2018). The Bayesian new statistics: two historical trends converge. Psychonomic Bulletin &amp; Review, 25, 178–205.</p>
 <p>Kruschke, J. K. (2011). Bayesian Assessment of Null Values Via Parameter Estimation and Model Comparison. Perspectives on Psychological Science, 6(3), 299–312. <a href="http://doi.org/10.1177/1745691611406925">http://doi.org/10.1177/1745691611406925</a></p>
 <p>Wagenmakers, E.-J., Verhagen, J., Ly, A., Matzke, D., Steringoever, H., Rouder, J. N., &amp; Morey, R. D. (2015). The Need for Bayesian Hypothesis Testing in Psychological Science, 1–29.</p>
-
-</div>
-</div>
-</div></section></section><section><section>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="PART-2---Practice">PART 2 - Practice<a class="anchor-link" href="#PART-2---Practice">&#182;</a></h1>
-</div>
-</div>
-</div></section></section><section><section>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="The-custom-probabilistic-programming-approach">The custom probabilistic programming approach<a class="anchor-link" href="#The-custom-probabilistic-programming-approach">&#182;</a></h2><p>Until relatively recently, practically conducting Bayesian analyses required in-depth knowledge and programming abilities. Bayesian models were written in specialised probabilistic programming languages such as <a href="https://en.wikipedia.org/wiki/WinBUGS">winbugs</a> and <a href="http://mcmc-jags.sourceforge.net">JAGS</a>.</p>
-<p>This approach of writing custom analysis is still popular, but the probabilistic programming languages have moved on. Today, we have <a href="https://mc-stan.org">STAN</a> and <a href="https://docs.pymc.io">PyMC3</a> as the core packages.</p>
-<p>This was made much more accessible with the advent of the textbook <code>Doing Bayesian Data Analysis</code> by John Kruschke. There is an associated blog at <a href="http://doingbayesiandataanalysis.blogspot.com">http://doingbayesiandataanalysis.blogspot.com</a>.</p>
-<p>Another popular textbook to follow soon after was <code>Statistical Rethinking: A Bayesian Course with Examples in R and Stan</code>, by Richard McElreath.</p>
-
-</div>
-</div>
-</div></section></section><section><section>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="The-point-and-click-approach:-JASP-statistics">The point-and-click approach: JASP statistics<a class="anchor-link" href="#The-point-and-click-approach:-JASP-statistics">&#182;</a></h2><p>While the probabilistic programming approach is still widely used, this does require a level of expertise in programming and statistical inference. In recent years more accessible SPSS-like software has emerged, namely <a href="https://jasp-stats.org">JASP</a>.</p>
-<p>This offers a wide range of traditional statistical tests (e.g. t-tests, regression models, ANOVA models, etc), but importantly it also provides Bayesian versions of these tests. The benefit is that it is much more accessible, and you can use the most commonly used statistical tests. The minor disadvantage however is that you are using a set of pre-defined tools, and so if you had a niche data analysis situation then you would have to fall back on the probabilistic programming approach.</p>
-
-</div>
-</div>
-</div></section></section><section><section>
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="prompt input_prompt">In&nbsp;[16]:</div>
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Export data for analysis in JASP</span>
-<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">})</span>
-<span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">&quot;mydata.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
-</div><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>(demo in <a href="https://jasp-stats.org">JASP</a> here)</p>
 
 </div>
 </div>
