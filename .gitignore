@@ -1,5 +1,4 @@
 
 .DS_Store
 *.pyc
-*-checkpoint.py
-*-checkpoint.ipynb
+*-checkpoint*
