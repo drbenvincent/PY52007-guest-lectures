@@ -16,6 +16,12 @@ end
 # ╔═╡ 01591408-819d-11eb-3f81-73b53fa7e515
 using PlutoUI
 
+# ╔═╡ 73a70344-81a2-11eb-0983-0147ed43f12e
+using CSV
+
+# ╔═╡ 06850036-81a7-11eb-33fc-6fbb2921301b
+using Statistics
+
 # ╔═╡ 8b6ff28c-818a-11eb-2421-41fa4a9aeedd
 md"# Frequentist vs Bayesian inference
 Dr Benjamin T. Vincent
@@ -154,12 +160,94 @@ This is a simple example, but it shows how by using Baye's equation, we can mult
 md"Now we will go forth and apply what we have learnt to our T-Test case study."
 
 # ╔═╡ 63e00578-81a2-11eb-23af-09b36db5ab85
-md"# Part II - Frequentist T-Test"
+md"# Part II - Frequentist T-Test
+So far we have introduced our motivating example of an independent samples T-Test. We saw that the output you get in JASP or Frequentist and Bayesian version of the test are rather different. We then started on our journey of understanding the differences between the approaches on a conceptual level. Of particular relevance for the Frequentist approach was the likelihood term, which can be desribed as the data generating process.
 
-# ╔═╡ 73a70344-81a2-11eb-0983-0147ed43f12e
+Here we return to our T-Test example and show, through simulation approaches, exactly what the Frequentist approach does. As I mentioned in the beginning, I have a existing material on [Hypothesis testing](https://github.com/drbenvincent/PY52007-guest-lectures/blob/2021/Hypothesis%20testing/Hypothesis%20Testing.ipynb), there will be some overlap, but you may wish to refer to that for more detail, and a different example.
 
+## The 'logic' of frequentist hypothesis testing
+There are many different statistical tests. It can be confusing which one you should use and why. What are all the different statistics and where do they come from? We can think about this in a simpler way:
+
+By thinking about simulating experiments (rather than doing maths), we can see that there is only one core procedure used in the hypothesis testing approach.
+![](https://raw.githubusercontent.com/drbenvincent/PY52007-guest-lectures/f83a2a113af0f1258753e449a3e47276e4f8759c/Hypothesis%20testing/figs/flow.png)
+_Figure by Allen Downney from this blog post [http://allendowney.blogspot.com/2016/06/there-is-still-only-one-test.html](http://allendowney.blogspot.com/2016/06/there-is-still-only-one-test.html)_
+
+The data is relatively straightforward. It is just a table of data that you have collected. You might have columns for different measures and rows for each observation.
+
+In order to test your hypothesis, you construct a test statistic. This takes your data and reduces it to a single number which captures the size of the effect that you are interested in. Example hypotheses could be:
+
+- The mean of group A is different than group B.
+- The median of group A is different than group B. (Might be more robust to outliers).
+- The mean of group A is higher than group B. (A directional hypothesis).
+- Each individual increased their score from condition A to condition B. (As in a repeated measures context).
+- Etc.
+
+We could come up with a whole range of statistics (ways of converting a dataset into an effect size) which test different hypotheses. We will look at an example below.
+
+Then the heart of the hypothesis testing approach comes in... You need to work out what are the chances of seeing an effect (a test statistic), for your particular dataset, as big as this by chance. If your effect size is low, then it is more consistent with chance as compared to if your effect size is large.
+
+So how do we do this, specifically? We define a null hypothesis, $H_0$, which states what we would expect to see if there is no effect. This is the 'top down' or deductive approach, where we say, _assuming the null and a certain experiment structure and a certain sample size, then I expect to see this._
+
+This allows you to work out the consistency (also known as the likelihood) of the data given the null hypothesis, which we could call $P(data|H_0)$.
+"
+
+# ╔═╡ ff3fbaf2-81a4-11eb-3794-5901c9c2e11e
+md"### Frequentist independent T-Test by hand
+So we are going to follow this approach and simulate what we would expect to see, assuming $H_0$. Before doing that, we need to understand a bit about our dataset.
+"
 
 # ╔═╡ 738a864c-81a2-11eb-0352-37fa8997ecc5
+data = CSV.read("Directed Reading Activities.csv");
+
+# ╔═╡ a8423144-81a4-11eb-0a39-0fe4e2238419
+first(data, 5)
+
+# ╔═╡ db953f14-81a4-11eb-01a3-6f47adcaa9d9
+last(data, 5)
+
+# ╔═╡ 9e837d6c-81a5-11eb-1df2-4fd2c7a36f72
+md"Let's see how many participants we have in the control and treatment groups"
+
+# ╔═╡ 2c02ec26-81a5-11eb-1b3a-236ef387e110
+N_treat = sum(data.group .== "Treat")
+
+# ╔═╡ 565f84d4-81a5-11eb-2d75-45d0b0c999e1
+N_control = sum(data.group .== "Control")
+
+# ╔═╡ beacd850-81a7-11eb-11c8-c3733fcdc1ea
+md"Now let's calculate the t-statistic (equal variances not assumed) for our data."
+
+# ╔═╡ db6a16e8-81a4-11eb-286d-c350d0d5fd6b
+t_statistic(x, y) = (mean(x) - mean(y)) / - √ (var(x)/length(x) + var(y)\length(y));
+
+# ╔═╡ db3df5a6-81a4-11eb-3259-6513e68aaa26
+t = t_statistic(data.drp[data.g .== 1], data.drp[data.g .== 0])
+
+# ╔═╡ eb38dd72-81a7-11eb-13a5-fb33865c1989
+md"So the t-statistic for our dataset is $t. Nice. But what does this mean? Is it a small number or a large number? How does it compare to what we'd expect to see under the null hypothesis?
+
+In order to work that out, we will follow the simulation approach in the flow diagram above."
+
+# ╔═╡ 122df8d8-81a8-11eb-0540-699877337ac9
+
+
+# ╔═╡ 12178c38-81a8-11eb-38c5-05eb483d41cc
+
+
+# ╔═╡ 11f76372-81a8-11eb-2ab2-3d2b6de88c5a
+
+
+# ╔═╡ db7efdc6-81a4-11eb-0e48-cf004c81f59a
+md"Define the generative model
+
+$\alpha = \delta \cdot \sigma$ 
+
+$x_i \sim \text{Normal} \Big( \mu - \frac{\alpha}{2}, \sigma \Big), i = 1, \ldots, N_{\text{treat}}$
+
+$y_i \sim \text{Normal} \Big( \mu + \frac{\alpha}{2}, \sigma \Big), i = 1, \ldots, N_{\text{control}}$
+"
+
+# ╔═╡ db2435da-81a4-11eb-1af0-3d4c18386433
 
 
 # ╔═╡ 735d335e-81a2-11eb-2eaa-d9a8ce7e3a0d
@@ -204,13 +292,29 @@ correct(md"This is pretty cool! We have broken free of the shakles of confinemen
 # ╟─f90deb1a-819d-11eb-1a88-abfa9692dc88
 # ╟─f4fc8d02-819c-11eb-2235-b5d793b04828
 # ╟─09cb2994-81a2-11eb-3750-f5b6b92c9a7a
-# ╠═63e00578-81a2-11eb-23af-09b36db5ab85
-# ╠═73a70344-81a2-11eb-0983-0147ed43f12e
+# ╟─63e00578-81a2-11eb-23af-09b36db5ab85
+# ╠═ff3fbaf2-81a4-11eb-3794-5901c9c2e11e
 # ╠═738a864c-81a2-11eb-0352-37fa8997ecc5
+# ╠═a8423144-81a4-11eb-0a39-0fe4e2238419
+# ╠═db953f14-81a4-11eb-01a3-6f47adcaa9d9
+# ╟─9e837d6c-81a5-11eb-1df2-4fd2c7a36f72
+# ╠═2c02ec26-81a5-11eb-1b3a-236ef387e110
+# ╠═565f84d4-81a5-11eb-2d75-45d0b0c999e1
+# ╟─beacd850-81a7-11eb-11c8-c3733fcdc1ea
+# ╠═db6a16e8-81a4-11eb-286d-c350d0d5fd6b
+# ╠═db3df5a6-81a4-11eb-3259-6513e68aaa26
+# ╠═eb38dd72-81a7-11eb-13a5-fb33865c1989
+# ╠═122df8d8-81a8-11eb-0540-699877337ac9
+# ╠═12178c38-81a8-11eb-38c5-05eb483d41cc
+# ╠═11f76372-81a8-11eb-2ab2-3d2b6de88c5a
+# ╠═db7efdc6-81a4-11eb-0e48-cf004c81f59a
+# ╠═db2435da-81a4-11eb-1af0-3d4c18386433
 # ╠═735d335e-81a2-11eb-2eaa-d9a8ce7e3a0d
 # ╠═73436ee2-81a2-11eb-3f5c-49655225012d
 # ╟─d032686a-8195-11eb-30f4-358f07266931
 # ╟─8cd18344-81a2-11eb-342b-112549bb58b1
 # ╠═01591408-819d-11eb-3f81-73b53fa7e515
+# ╠═73a70344-81a2-11eb-0983-0147ed43f12e
+# ╠═06850036-81a7-11eb-33fc-6fbb2921301b
 # ╠═82703e04-81a2-11eb-05e5-c168ca10f7c6
 # ╠═30187ce6-819a-11eb-1678-dde16ff33b1a
