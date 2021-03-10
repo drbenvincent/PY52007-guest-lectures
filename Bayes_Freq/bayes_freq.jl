@@ -14,16 +14,7 @@ macro bind(def, element)
 end
 
 # ╔═╡ 01591408-819d-11eb-3f81-73b53fa7e515
-using PlutoUI
-
-# ╔═╡ 73a70344-81a2-11eb-0983-0147ed43f12e
-using CSV
-
-# ╔═╡ 06850036-81a7-11eb-33fc-6fbb2921301b
-using Statistics
-
-# ╔═╡ 465d08a2-81ac-11eb-27c7-abe1903a18da
-using Distributions, StatsPlots
+using PlutoUI, CSV, Statistics, Distributions, StatsPlots
 
 # ╔═╡ 8b6ff28c-818a-11eb-2421-41fa4a9aeedd
 md"# Frequentist vs Bayesian inference
@@ -205,7 +196,8 @@ data = CSV.read("Directed Reading Activities.csv")
 
 # ╔═╡ 949dfcd8-81bd-11eb-051a-f9143fc71478
 begin
-	histogram(data.drp[data.group .== "Treat"], 
+	plot(size=(700, 200))
+	histogram!(data.drp[data.group .== "Treat"], 
 		bins=10, label="Treat", alpha=0.5)
 	histogram!(data.drp[data.group .== "Control"], 
 		bins=15, label="Control", alpha=0.5)
@@ -274,8 +266,8 @@ md"Choose a value for $\alpha$. Note that $H_0$ is that there is no difference b
 # ╔═╡ 11f76372-81a8-11eb-2ab2-3d2b6de88c5a
 begin
 	x, y = generative_process(α, N_treat, N_control);
-	density(x, label="control")
-	density!(y, label="treatment")
+	density(x, label="control", lw=3)
+	density!(y, label="treatment", lw=3)
 	t_value = t_statistic(x, y)
 	plot!(xlabel="observed value", 
 		  title="α = $α; t = $t_value\nN_treat = $N_treat, N_control=$N_control",
@@ -364,7 +356,101 @@ In the Bayesian approach we actually consider a whole span of hypotheses and con
 "
 
 # ╔═╡ 73436ee2-81a2-11eb-3f5c-49655225012d
+md"## Define the generative model
 
+$\delta \sim \mathrm{Cauchy}(0, 0.707)$
+
+$\sigma = 1 ???????$
+
+$\alpha = \delta \cdot \sigma$ 
+
+$x_i \sim \text{Normal} \Big( \mu - \frac{\alpha}{2}, \sigma \Big), i = 1, \ldots, N_{\text{treat}}$
+
+$y_i \sim \text{Normal} \Big( \mu + \frac{\alpha}{2}, \sigma \Big), i = 1, \ldots, N_{\text{control}}$
+
+Let's look at these components:
+- ``\delta`` is the effect size and is defined as ``\delta = \alpha \cdot \sigma``.
+- ``\alpha`` is the distance between the group means.
+- ``\sigma`` is the standard deviation of the data.
+- ``x_i`` defines the likelihood of the data from the treatment group.
+- ``y_i`` defines the likelihood of the data from the control group.
+
+Note that the effect size $\delta = \alpha / \sigma$
+"
+
+# ╔═╡ 97347b74-81d0-11eb-009b-33178b6218c3
+effect_sizes = LinRange(-10, 10, 1000);
+
+# ╔═╡ 472cf462-81d5-11eb-29c3-6b1e5a44e438
+md"We can visualise our prior over effect sizes:"
+
+# ╔═╡ bcc5ef8e-81c7-11eb-2ce4-55d6fe7f407c
+function plot_prior()
+	prior = pdf(Cauchy(0, 0.707), effect_sizes)
+	prior = prior ./ sum(prior)  # Normalise
+	plot(effect_sizes, prior, lw=3, 
+		linestyle=:dash, color=:black, xlim=[-2, 2], label="Prior")
+	plot!(xlabel="Effect size δ")
+end;
+
+# ╔═╡ 69ff41ac-81d5-11eb-00eb-05eae733a4ff
+plot_prior()
+
+# ╔═╡ 18aa5896-81d3-11eb-213b-7d8b0bfd743b
+md"Calculate the posterior probability for a given effect size $\delta$."
+
+# ╔═╡ 44381090-81ce-11eb-2a9f-65aee384155d
+function calc_posterior(δ, σ, treat, control)
+	lp = 0.0  # Note we sum log posteriors
+	α = δ * σ
+	# prior
+	lp += logpdf(Cauchy(0, 0.707), δ)
+	# likelihood
+	lp += sum(logpdf(Normal(-α/2, σ), treat))
+	lp += sum(logpdf(Normal(α/2, σ), control))
+	return exp(lp)  # return posterior, not the log posterior
+end;
+
+# ╔═╡ 980d5fea-81c9-11eb-2f50-cbbe3d40e5e8
+function calc_posterior_for_many_effect_sizes(treat, control)
+	σ = std([treat; control]) # SORT THIS OUT !!!!!!!!!!!!!!!!!
+	post = [calc_posterior(δ, σ, treat, control) for δ in effect_sizes]
+	return  post ./ sum(post)  # normalise
+end;
+
+# ╔═╡ 97f92084-81c9-11eb-35e0-dfef6a781db9
+posterior_prob = calc_posterior_for_many_effect_sizes(
+	data.drp[data.group .== "Treat"],
+	data.drp[data.group .== "Control"]);
+
+# ╔═╡ 97e0354c-81c9-11eb-3ab2-b771d0bfeeb8
+function plot_posterior!(x, y)
+	plot!(x, y, xlim=[-2, 2], lw=3, color=:black, label="posterior")
+end;
+
+# ╔═╡ b36d2060-81cc-11eb-3633-b17313552c9f
+begin
+	plot()
+	plot_prior()
+	plot_posterior!(effect_sizes, posterior_prob)
+end
+
+# ╔═╡ e427c10a-81d2-11eb-2921-e92d42389071
+md"## TODO: SORT OUT CALCULATION OF BAYES FACTOR"
+
+# ╔═╡ 14c1d1a2-81ce-11eb-00d5-29c0ff4dc016
+function BF()
+	δ = 0
+	σ = 5
+	σ = std(data.drp)  # SORT THIS OUT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	H0 = pdf(Cauchy(0, 0.707), δ)
+	H1 = calc_posterior(δ, σ, data.drp[data.group .== "Treat"],
+						data.drp[data.group .== "Control"])
+	return H0, H1, H0/H1
+end;
+
+# ╔═╡ 80cccaaa-81ce-11eb-3f13-319a8c066740
+BF()
 
 # ╔═╡ d032686a-8195-11eb-30f4-358f07266931
 md"# References
@@ -391,6 +477,12 @@ correct(md"Our t-statistic for our dataset is $t_observed. Compare that to the t
 
 # ╔═╡ db2435da-81a4-11eb-1af0-3d4c18386433
 correct(md"The two-tailed p-value using our simulation approach is $p. We got a ``p=0.029`` from JASP, so that is a match when our estimates are based on a large number of simulated datasets.")
+
+# ╔═╡ 56ce5f38-81d4-11eb-227d-43aa021ab15e
+danger(text) = Markdown.MD(Markdown.Admonition("danger", "Warning!", [text]));
+
+# ╔═╡ 67938cda-81d4-11eb-2f44-1902dbe7586d
+danger(md"The results I present here are not exactly the same as in JASP. This is because I am not yet 100% sure how they deal with the $\sigma$ variable. But it is close enough to get the idea! I will continue on this front and update the notebook when I figure it out.")
 
 # ╔═╡ Cell order:
 # ╟─8b6ff28c-818a-11eb-2421-41fa4a9aeedd
@@ -428,17 +520,29 @@ correct(md"The two-tailed p-value using our simulation approach is $p. We got a 
 # ╟─11f76372-81a8-11eb-2ab2-3d2b6de88c5a
 # ╟─43ad5d44-81ae-11eb-0b30-451a156bcbcc
 # ╠═437a9eea-81ae-11eb-0d6f-ef8073af86d9
-# ╟─17a5965c-81af-11eb-3a52-b3627fc436b8
+# ╠═17a5965c-81af-11eb-3a52-b3627fc436b8
 # ╠═43932faa-81ae-11eb-06a5-29bda5d2ce54
 # ╟─db2435da-81a4-11eb-1af0-3d4c18386433
 # ╟─e2e518d8-81b9-11eb-2c55-1bdd73057d60
-# ╠═735d335e-81a2-11eb-2eaa-d9a8ce7e3a0d
+# ╟─735d335e-81a2-11eb-2eaa-d9a8ce7e3a0d
 # ╠═73436ee2-81a2-11eb-3f5c-49655225012d
-# ╟─d032686a-8195-11eb-30f4-358f07266931
+# ╟─67938cda-81d4-11eb-2f44-1902dbe7586d
+# ╠═97347b74-81d0-11eb-009b-33178b6218c3
+# ╟─472cf462-81d5-11eb-29c3-6b1e5a44e438
+# ╠═bcc5ef8e-81c7-11eb-2ce4-55d6fe7f407c
+# ╠═69ff41ac-81d5-11eb-00eb-05eae733a4ff
+# ╟─18aa5896-81d3-11eb-213b-7d8b0bfd743b
+# ╠═44381090-81ce-11eb-2a9f-65aee384155d
+# ╠═980d5fea-81c9-11eb-2f50-cbbe3d40e5e8
+# ╠═97f92084-81c9-11eb-35e0-dfef6a781db9
+# ╠═97e0354c-81c9-11eb-3ab2-b771d0bfeeb8
+# ╟─b36d2060-81cc-11eb-3633-b17313552c9f
+# ╠═e427c10a-81d2-11eb-2921-e92d42389071
+# ╠═14c1d1a2-81ce-11eb-00d5-29c0ff4dc016
+# ╠═80cccaaa-81ce-11eb-3f13-319a8c066740
+# ╠═d032686a-8195-11eb-30f4-358f07266931
 # ╟─8cd18344-81a2-11eb-342b-112549bb58b1
 # ╠═01591408-819d-11eb-3f81-73b53fa7e515
-# ╠═73a70344-81a2-11eb-0983-0147ed43f12e
-# ╠═06850036-81a7-11eb-33fc-6fbb2921301b
-# ╠═465d08a2-81ac-11eb-27c7-abe1903a18da
 # ╠═82703e04-81a2-11eb-05e5-c168ca10f7c6
 # ╠═30187ce6-819a-11eb-1678-dde16ff33b1a
+# ╠═56ce5f38-81d4-11eb-227d-43aa021ab15e
