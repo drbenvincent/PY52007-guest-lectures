@@ -22,6 +22,9 @@ using CSV
 # ╔═╡ 06850036-81a7-11eb-33fc-6fbb2921301b
 using Statistics
 
+# ╔═╡ 465d08a2-81ac-11eb-27c7-abe1903a18da
+using Distributions, StatsPlots
+
 # ╔═╡ 8b6ff28c-818a-11eb-2421-41fa4a9aeedd
 md"# Frequentist vs Bayesian inference
 Dr Benjamin T. Vincent
@@ -43,7 +46,8 @@ This is the kind of output you get from JASP when running a traditional Frequent
 ![](https://raw.githubusercontent.com/drbenvincent/PY52007-guest-lectures/2021/Bayes_Freq/img/results_freq.png)
 
 ### Bayesian output
-This figure below shows the kind of output you get from a Bayesian version of the same statistical test in JASP. The key result here is what is known as a Bayes Factor, $BF_{10}=2.217$. But we also get a nice graphical output. At the moment this might look all very mysterious, but by the end of this session you should understand it 🙂
+This figure below shows the kind of output you get from a Bayesian version of the same statistical test in JASP. The key result here is what is known as a Bayes Factor, $BF_{10}=2.217$. But we also get a nice graphical output. At the moment this might look all very mysterious, but by the end of this session you should understand it 🙂.
+
 ![](https://raw.githubusercontent.com/drbenvincent/PY52007-guest-lectures/2021/Bayes_Freq/img/results_bayesian.png)
 
 ### The focus of this session
@@ -197,13 +201,15 @@ So we are going to follow this approach and simulate what we would expect to see
 "
 
 # ╔═╡ 738a864c-81a2-11eb-0352-37fa8997ecc5
-data = CSV.read("Directed Reading Activities.csv");
+data = CSV.read("Directed Reading Activities.csv")
 
-# ╔═╡ a8423144-81a4-11eb-0a39-0fe4e2238419
-first(data, 5)
-
-# ╔═╡ db953f14-81a4-11eb-01a3-6f47adcaa9d9
-last(data, 5)
+# ╔═╡ 949dfcd8-81bd-11eb-051a-f9143fc71478
+begin
+	histogram(data.drp[data.group .== "Treat"], 
+		bins=10, label="Treat", alpha=0.5)
+	histogram!(data.drp[data.group .== "Control"], 
+		bins=15, label="Control", alpha=0.5)
+end
 
 # ╔═╡ 9e837d6c-81a5-11eb-1df2-4fd2c7a36f72
 md"Let's see how many participants we have in the control and treatment groups"
@@ -215,27 +221,29 @@ N_treat = sum(data.group .== "Treat")
 N_control = sum(data.group .== "Control")
 
 # ╔═╡ beacd850-81a7-11eb-11c8-c3733fcdc1ea
-md"Now let's calculate the t-statistic (equal variances not assumed) for our data."
+md"Now let's calculate the t-statistic (equal variances assumed) for our data."
 
-# ╔═╡ db6a16e8-81a4-11eb-286d-c350d0d5fd6b
-t_statistic(x, y) = (mean(x) - mean(y)) / - √ (var(x)/length(x) + var(y)\length(y));
+# ╔═╡ b8124ffc-81b3-11eb-2c19-ad5d4e868ff6
+function pooled_std(x, y)
+	numerator = (length(x) - 1) * var(x) + (length(y) - 1) * var(y)
+	denom = (length(x) + length(y)-2)
+	return √(numerator / denom)
+end;
+
+# ╔═╡ 70ed51a6-81b3-11eb-2cc8-b59172453297
+function t_statistic(x, y)
+	return (mean(x) - mean(y)) / 
+	(pooled_std(x, y) * sqrt(1/length(x) + 1/length(y)))
+end;
 
 # ╔═╡ db3df5a6-81a4-11eb-3259-6513e68aaa26
-t = t_statistic(data.drp[data.g .== 1], data.drp[data.g .== 0])
+t_observed = t_statistic(data.drp[data.group .== "Treat"], 
+	                     data.drp[data.group .== "Control"])
 
 # ╔═╡ eb38dd72-81a7-11eb-13a5-fb33865c1989
-md"So the t-statistic for our dataset is $t. Nice. But what does this mean? Is it a small number or a large number? How does it compare to what we'd expect to see under the null hypothesis?
+md"So the t-statistic for our dataset is $t_observed. Nice. But what does this mean? Is it a small number or a large number? How does it compare to what we'd expect to see under the null hypothesis?
 
 In order to work that out, we will follow the simulation approach in the flow diagram above."
-
-# ╔═╡ 122df8d8-81a8-11eb-0540-699877337ac9
-
-
-# ╔═╡ 12178c38-81a8-11eb-38c5-05eb483d41cc
-
-
-# ╔═╡ 11f76372-81a8-11eb-2ab2-3d2b6de88c5a
-
 
 # ╔═╡ db7efdc6-81a4-11eb-0e48-cf004c81f59a
 md"Define the generative model
@@ -245,13 +253,115 @@ $\alpha = \delta \cdot \sigma$
 $x_i \sim \text{Normal} \Big( \mu - \frac{\alpha}{2}, \sigma \Big), i = 1, \ldots, N_{\text{treat}}$
 
 $y_i \sim \text{Normal} \Big( \mu + \frac{\alpha}{2}, \sigma \Big), i = 1, \ldots, N_{\text{control}}$
+
+Note that the effect size $\delta = \alpha / \sigma$
 "
 
-# ╔═╡ db2435da-81a4-11eb-1af0-3d4c18386433
+# ╔═╡ 122df8d8-81a8-11eb-0540-699877337ac9
+function generative_process(α, N_treat, N_control)
+	μ, σ = 0, 1
+	x = rand(Normal(μ + α/2, σ), N_treat)
+	y = rand(Normal(μ - α/2, σ), N_control)
+	return x, y
+end;
 
+# ╔═╡ 050d79b6-81ae-11eb-280d-c5223c23055a
+md"Choose a value for $\alpha$. Note that $H_0$ is that there is no difference between the group, and when $H_0$ is true, $\alpha=0$."
+
+# ╔═╡ 24e29984-81ad-11eb-1cc6-ffebec8641ff
+@bind α Slider(0.00 : 0.01 : 5.0)
+
+# ╔═╡ 11f76372-81a8-11eb-2ab2-3d2b6de88c5a
+begin
+	x, y = generative_process(α, N_treat, N_control);
+	density(x, label="control")
+	density!(y, label="treatment")
+	t_value = t_statistic(x, y)
+	plot!(xlabel="observed value", 
+		  title="α = $α; t = $t_value\nN_treat = $N_treat, N_control=$N_control",
+		  xlim=[-5, 5])
+	vline!([+α/2], color=:black, label="alpha/2")
+	vline!([-α/2], color=:black, linestyle=:dash, label="-alpha/2")
+end
+
+# ╔═╡ 43ad5d44-81ae-11eb-0b30-451a156bcbcc
+md"Now what we want to do is to repeat this simulation many times to calculate a distribution of what t-statistic values we would expect to see under $H_0$. The steps are:
+1. Set $\alpha=0$ to correspond to $H_0$
+2. Use the generative process to simulate data we'd expect to see.
+3. Calculate the t-statistic for that simulated dataset.
+4. Repeat steps 2-3 many times, building up a list of t-statistic values.
+5. Work out the proportion of the time the observed t-statistic is greater than what we'd expect under $H_0$.
+" 
+
+# ╔═╡ 437a9eea-81ae-11eb-0d6f-ef8073af86d9
+function p_two_tailed(observed, distribution)
+	sum(abs.(distribution) .> observed) / length(distribution)
+end;
+
+# ╔═╡ 17a5965c-81af-11eb-3a52-b3627fc436b8
+@bind n_simulations Slider(100 : 100 : 500_000)
+
+# ╔═╡ 43932faa-81ae-11eb-06a5-29bda5d2ce54
+begin
+	t_vec = []
+	for n = 1 : n_simulations
+		# Note: we assume alpha = 0
+		x, y = generative_process(0, N_treat, N_control)
+		append!(t_vec, t_statistic(x, y))
+	end
+	
+	p = p_two_tailed(t_observed, t_vec)
+	
+	density(t_vec, title="t-statistic under H0\n p=$p\n $n_simulations simulations", 
+			label="", lw=3)
+	plot!(xlabel="t-statistic value", xlim=[-4, 4])
+	vline!([t_observed], label="observed t-statistic")
+end
+
+# ╔═╡ e2e518d8-81b9-11eb-2c55-1bdd73057d60
+md"## Recap
+
+Let's circle back to the output we got from the Frequentist independent samples T-Test:
+![](https://raw.githubusercontent.com/drbenvincent/PY52007-guest-lectures/2021/Bayes_Freq/img/results_freq.png)
+
+We were able to replicate the t-statistic value _and_ the p-value using our simulation based approach. Hopefully this all clarifies how Frequentist hypothesis testing works. The most important points are:
+- The Frequentist approach uses a data generating process. We assume $H_0$ is true and then simulate data consistent with this hypothesis.
+- By repeatedly simulating possible datasets under $H_0$, then we can calculate a distribution of t-statistics we would expect to see.
+- We can then compare that to the t-statistic value for the actual data that we observed. This allows us to see how likely or unlikely the observed t-statistic value is 
+- We can then make claims about the plausibility of the data under the null hypothesis, $P(\text{data}|H_0)$, which we know as the likelihood.
+- But we must be aware that this does _not_ allow us to make any claims about how likely the null hypothesis is to be true or false. 
+
+What you _cannot_ say:
+- I have falsified the null hypothesis.
+- There is a 95% chance of the null hypothesis being false
+
+What you _can_ say:
+- If I theoretically repeated the same experiment a very large number of times, then I would expect to get a statistic value this extreme or more p=$p of the time.
+- If I conclude that $H_0$ is false, I would be wrong $(p*100)% of the time.
+
+I highly recommend checking out my other [Hypothesis Testing notebook]([Hypothesis testing](https://github.com/drbenvincent/PY52007-guest-lectures/blob/2021/Hypothesis%20testing/Hypothesis%20Testing.ipynb)) which goes into this in more depth.
+"
 
 # ╔═╡ 735d335e-81a2-11eb-2eaa-d9a8ce7e3a0d
-md"# Part III - Bayesian T-Test"
+md"# Part III - Bayesian T-Test
+
+It's been a while, so let's recap the kind of output that we get from the Bayesian version of the independent samples T-Test.
+
+![](https://raw.githubusercontent.com/drbenvincent/PY52007-guest-lectures/2021/Bayes_Freq/img/results_bayesian.png)
+
+The most important points we will cover are:
+- How to understand the main result, the Bayes Factor, $BF_{01}=0.451$
+- How to understand the prior and posterior over effect sizes, $\delta$.
+
+To pre-empt our full understanding:
+1. The prior curve represents the relative plausibility/credibility in different effect sizes prior to having seen the data. This prior knowledge could be based upon our knowledge of the effect sizes that we observe in psychological experiments.
+2. The posterior curve represents the credibility of effect sizes after having observed the data. This is arrived at using Baye's equation.
+3. The Bayes Factor describes whether the credibility of $H_0$ (effect size is zero) has gone up or down, and by how much, after having seen the data relative to our prior beliefs.
+
+One of the major conceptual leaps here is that we no longer just consider one hypothesis, such as $H_0$ which states that group differences are zero. We saw in the generative model, this was done by setting $\alpha=0$. 
+
+In the Bayesian approach we actually consider a whole span of hypotheses and consider the credibility for a range of effect sizes consistent with our prior beliefs or our posterior beliefs after having seen the data. 
+"
 
 # ╔═╡ 73436ee2-81a2-11eb-3f5c-49655225012d
 
@@ -276,6 +386,12 @@ correct(text) = Markdown.MD(Markdown.Admonition("correct", "Important point", [t
 # ╔═╡ f4fc8d02-819c-11eb-2235-b5d793b04828
 correct(md"This is pretty cool! We have broken free of the shakles of confinement of making claims about data. Now we can make claims about hypotheses! This is what we are very often interested in doing as scientists.")
 
+# ╔═╡ 9d58e5cc-81b6-11eb-3433-bd02e2354dc6
+correct(md"Our t-statistic for our dataset is $t_observed. Compare that to the t-statistic calculated through JASP, up at the top of this notebook. It's the same!")
+
+# ╔═╡ db2435da-81a4-11eb-1af0-3d4c18386433
+correct(md"The two-tailed p-value using our simulation approach is $p. We got a ``p=0.029`` from JASP, so that is a match when our estimates are based on a large number of simulated datasets.")
+
 # ╔═╡ Cell order:
 # ╟─8b6ff28c-818a-11eb-2421-41fa4a9aeedd
 # ╟─de82e978-818c-11eb-11bf-ffa1249a932a
@@ -293,22 +409,29 @@ correct(md"This is pretty cool! We have broken free of the shakles of confinemen
 # ╟─f4fc8d02-819c-11eb-2235-b5d793b04828
 # ╟─09cb2994-81a2-11eb-3750-f5b6b92c9a7a
 # ╟─63e00578-81a2-11eb-23af-09b36db5ab85
-# ╠═ff3fbaf2-81a4-11eb-3794-5901c9c2e11e
+# ╟─ff3fbaf2-81a4-11eb-3794-5901c9c2e11e
 # ╠═738a864c-81a2-11eb-0352-37fa8997ecc5
-# ╠═a8423144-81a4-11eb-0a39-0fe4e2238419
-# ╠═db953f14-81a4-11eb-01a3-6f47adcaa9d9
+# ╟─949dfcd8-81bd-11eb-051a-f9143fc71478
 # ╟─9e837d6c-81a5-11eb-1df2-4fd2c7a36f72
-# ╠═2c02ec26-81a5-11eb-1b3a-236ef387e110
-# ╠═565f84d4-81a5-11eb-2d75-45d0b0c999e1
+# ╟─2c02ec26-81a5-11eb-1b3a-236ef387e110
+# ╟─565f84d4-81a5-11eb-2d75-45d0b0c999e1
 # ╟─beacd850-81a7-11eb-11c8-c3733fcdc1ea
-# ╠═db6a16e8-81a4-11eb-286d-c350d0d5fd6b
+# ╠═70ed51a6-81b3-11eb-2cc8-b59172453297
+# ╠═b8124ffc-81b3-11eb-2c19-ad5d4e868ff6
 # ╠═db3df5a6-81a4-11eb-3259-6513e68aaa26
-# ╠═eb38dd72-81a7-11eb-13a5-fb33865c1989
+# ╟─9d58e5cc-81b6-11eb-3433-bd02e2354dc6
+# ╟─eb38dd72-81a7-11eb-13a5-fb33865c1989
+# ╟─db7efdc6-81a4-11eb-0e48-cf004c81f59a
 # ╠═122df8d8-81a8-11eb-0540-699877337ac9
-# ╠═12178c38-81a8-11eb-38c5-05eb483d41cc
-# ╠═11f76372-81a8-11eb-2ab2-3d2b6de88c5a
-# ╠═db7efdc6-81a4-11eb-0e48-cf004c81f59a
-# ╠═db2435da-81a4-11eb-1af0-3d4c18386433
+# ╟─050d79b6-81ae-11eb-280d-c5223c23055a
+# ╟─24e29984-81ad-11eb-1cc6-ffebec8641ff
+# ╟─11f76372-81a8-11eb-2ab2-3d2b6de88c5a
+# ╟─43ad5d44-81ae-11eb-0b30-451a156bcbcc
+# ╠═437a9eea-81ae-11eb-0d6f-ef8073af86d9
+# ╟─17a5965c-81af-11eb-3a52-b3627fc436b8
+# ╠═43932faa-81ae-11eb-06a5-29bda5d2ce54
+# ╟─db2435da-81a4-11eb-1af0-3d4c18386433
+# ╟─e2e518d8-81b9-11eb-2c55-1bdd73057d60
 # ╠═735d335e-81a2-11eb-2eaa-d9a8ce7e3a0d
 # ╠═73436ee2-81a2-11eb-3f5c-49655225012d
 # ╟─d032686a-8195-11eb-30f4-358f07266931
@@ -316,5 +439,6 @@ correct(md"This is pretty cool! We have broken free of the shakles of confinemen
 # ╠═01591408-819d-11eb-3f81-73b53fa7e515
 # ╠═73a70344-81a2-11eb-0983-0147ed43f12e
 # ╠═06850036-81a7-11eb-33fc-6fbb2921301b
+# ╠═465d08a2-81ac-11eb-27c7-abe1903a18da
 # ╠═82703e04-81a2-11eb-05e5-c168ca10f7c6
 # ╠═30187ce6-819a-11eb-1678-dde16ff33b1a
