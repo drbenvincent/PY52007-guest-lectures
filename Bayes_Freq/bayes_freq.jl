@@ -13,6 +13,9 @@ macro bind(def, element)
     end
 end
 
+# ╔═╡ c0e909ea-81e5-11eb-228d-91f889aff616
+using DataFrames
+
 # ╔═╡ 01591408-819d-11eb-3f81-73b53fa7e515
 using PlutoUI, CSV, Statistics, Distributions, StatsPlots
 
@@ -140,13 +143,13 @@ md"The **prior** is something that we can change using this slider below, but it
 "
 
 # ╔═╡ 998e5836-819e-11eb-30a3-1704d76ca122
-@bind prior Slider(0.00 : 0.01 : 1.0)
+@bind shark_prior Slider(0.00 : 0.01 : 1.0)
 
 # ╔═╡ f90deb1a-819d-11eb-1a88-abfa9692dc88
 md"
-**Prior:** ``P(\text{shark bit head off})`` = $prior
+**Prior:** ``P(\text{shark bit head off})`` = $shark_prior
 
-**Posterior:** ``P(\text{shark bit head off} | \text{died in last 2 years})`` = 1 ``\times`` $prior = $(likelihood * prior)
+**Posterior:** ``P(\text{shark bit head off} | \text{died in last 2 years})`` = 1 ``\times`` $shark_prior = $(likelihood * shark_prior)
 
 This is a simple example, but it shows how by using Baye's equation, we can multiply the likelihood by the prior to arrive at our posterior.
 "
@@ -192,11 +195,11 @@ So we are going to follow this approach and simulate what we would expect to see
 "
 
 # ╔═╡ 738a864c-81a2-11eb-0352-37fa8997ecc5
-data = CSV.read("Directed Reading Activities.csv")
+data = CSV.read("Directed_Reading_Activities.csv", DataFrame)
 
 # ╔═╡ 949dfcd8-81bd-11eb-051a-f9143fc71478
 begin
-	plot(size=(700, 200))
+	plot(size=(650, 200))
 	histogram!(data.drp[data.group .== "Treat"], 
 		bins=10, label="Treat", alpha=0.5)
 	histogram!(data.drp[data.group .== "Control"], 
@@ -213,7 +216,14 @@ N_treat = sum(data.group .== "Treat")
 N_control = sum(data.group .== "Control")
 
 # ╔═╡ beacd850-81a7-11eb-11c8-c3733fcdc1ea
-md"Now let's calculate the t-statistic (equal variances assumed) for our data."
+md"Now let's calculate the t-statistic (equal variances assumed) for our data. As I mentioned, you could do this with a much simpler statistic (e.g. difference in means), but the t-statistic has some more desirable properties in how it is affected by group variance etc, so we will look up the t-statistic equation and use that.
+
+$t = \frac{\bar{x}_1 - \bar{x}_2}{s_p \sqrt{ 1/n_1 + 1/n_2 }}$
+
+where
+
+$s_p = \sqrt{ \frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1 +n_2 -2} }$
+"
 
 # ╔═╡ b8124ffc-81b3-11eb-2c19-ad5d4e868ff6
 function pooled_std(x, y)
@@ -227,6 +237,9 @@ function t_statistic(x, y)
 	return (mean(x) - mean(y)) / 
 	(pooled_std(x, y) * sqrt(1/length(x) + 1/length(y)))
 end;
+
+# ╔═╡ 79eb800c-8244-11eb-22ba-09fa882a3ee7
+md"So let's use that to calculat the t-statistic for our data."
 
 # ╔═╡ db3df5a6-81a4-11eb-3259-6513e68aaa26
 t_observed = t_statistic(data.drp[data.group .== "Treat"], 
@@ -285,22 +298,34 @@ md"Now what we want to do is to repeat this simulation many times to calculate a
 5. Work out the proportion of the time the observed t-statistic is greater than what we'd expect under $H_0$.
 " 
 
-# ╔═╡ 437a9eea-81ae-11eb-0d6f-ef8073af86d9
-function p_two_tailed(observed, distribution)
-	sum(abs.(distribution) .> observed) / length(distribution)
-end;
-
-# ╔═╡ 17a5965c-81af-11eb-3a52-b3627fc436b8
-@bind n_simulations Slider(100 : 100 : 500_000)
-
-# ╔═╡ 43932faa-81ae-11eb-06a5-29bda5d2ce54
-begin
+# ╔═╡ d8981e76-8244-11eb-2c8b-f55cb91169ea
+function many_simulations(n_simulations, N_treat, N_control)
 	t_vec = []
 	for n = 1 : n_simulations
 		# Note: we assume alpha = 0
 		x, y = generative_process(0, N_treat, N_control)
 		append!(t_vec, t_statistic(x, y))
 	end
+	return t_vec
+end;
+
+# ╔═╡ cfa47eec-81e3-11eb-1658-5b4a58fe9bfd
+md"Note that we are using a 2-tailed test in that we are not making a directional hypothesis. Therefore we need compare the distribution of t-statistics to the _absolute value_ of the observed t-statistic."
+
+# ╔═╡ 437a9eea-81ae-11eb-0d6f-ef8073af86d9
+function p_two_tailed(observed, distribution)
+	sum(abs.(distribution) .> observed) / length(distribution)
+end;
+
+# ╔═╡ 140ee084-8245-11eb-0d3b-3929a2b48b52
+md"Choose the number of simulations with the slider:"
+
+# ╔═╡ 17a5965c-81af-11eb-3a52-b3627fc436b8
+@bind n_simulations Slider(100 : 100 : 500_000)
+
+# ╔═╡ 43932faa-81ae-11eb-06a5-29bda5d2ce54
+begin
+	t_vec = many_simulations(n_simulations, N_treat, N_control)
 	
 	p = p_two_tailed(t_observed, t_vec)
 	
@@ -358,9 +383,11 @@ In the Bayesian approach we actually consider a whole span of hypotheses and con
 # ╔═╡ 73436ee2-81a2-11eb-3f5c-49655225012d
 md"## Define the generative model
 
+This is basically the same generative model as before. The only real difference is that we can define our prior beliefs about the effect size, $\delta$.
+
 $\delta \sim \mathrm{Cauchy}(0, 0.707)$
 
-$\sigma = 1 ???????$
+$\sigma = ???????$
 
 $\alpha = \delta \cdot \sigma$ 
 
@@ -381,21 +408,6 @@ Note that the effect size $\delta = \alpha / \sigma$
 # ╔═╡ 97347b74-81d0-11eb-009b-33178b6218c3
 effect_sizes = LinRange(-10, 10, 1000);
 
-# ╔═╡ 472cf462-81d5-11eb-29c3-6b1e5a44e438
-md"We can visualise our prior over effect sizes:"
-
-# ╔═╡ bcc5ef8e-81c7-11eb-2ce4-55d6fe7f407c
-function plot_prior()
-	prior = pdf(Cauchy(0, 0.707), effect_sizes)
-	prior = prior ./ sum(prior)  # Normalise
-	plot(effect_sizes, prior, lw=3, 
-		linestyle=:dash, color=:black, xlim=[-2, 2], label="Prior")
-	plot!(xlabel="Effect size δ")
-end;
-
-# ╔═╡ 69ff41ac-81d5-11eb-00eb-05eae733a4ff
-plot_prior()
-
 # ╔═╡ 18aa5896-81d3-11eb-213b-7d8b0bfd743b
 md"Calculate the posterior probability for a given effect size $\delta$."
 
@@ -413,7 +425,7 @@ end;
 
 # ╔═╡ 980d5fea-81c9-11eb-2f50-cbbe3d40e5e8
 function calc_posterior_for_many_effect_sizes(treat, control)
-	σ = std([treat; control]) # SORT THIS OUT !!!!!!!!!!!!!!!!!
+	σ = pooled_std(treat, control)  # SORT THIS OUT !!!!!!!!!!!!!!!!!
 	post = [calc_posterior(δ, σ, treat, control) for δ in effect_sizes]
 	return  post ./ sum(post)  # normalise
 end;
@@ -423,38 +435,63 @@ posterior_prob = calc_posterior_for_many_effect_sizes(
 	data.drp[data.group .== "Treat"],
 	data.drp[data.group .== "Control"]);
 
-# ╔═╡ 97e0354c-81c9-11eb-3ab2-b771d0bfeeb8
-function plot_posterior!(x, y)
-	plot!(x, y, xlim=[-2, 2], lw=3, color=:black, label="posterior")
-end;
+# ╔═╡ 3d865c1c-81e6-11eb-2096-0f7ab41c44c5
+md"Let's look at the results. We know they only approximate the results that JASP gives.
+
+Here we can see the the credibility that the effect size equals zero ($\delta=0$) has now gone up slightly after having observed the data. This constrasts to the result given by JASP.
+
+The discrepancy is simply because I have not yet fully understood how they deal with the $\sigma$ parameter."
 
 # ╔═╡ b36d2060-81cc-11eb-3633-b17313552c9f
 begin
-	plot()
-	plot_prior()
-	plot_posterior!(effect_sizes, posterior_prob)
+	# plot prior
+	prior = pdf(Cauchy(0, 0.707), effect_sizes)
+	prior_n = prior ./ sum(prior)  # Normalise
+	plot(effect_sizes, prior_n, lw=3, 
+		linestyle=:dash, color=:black, xlim=[-2, 2], label="Prior")
+	plot!(xlabel="Effect size δ")
+	
+	# plot posterior
+	plot!(effect_sizes, posterior_prob, 
+		xlim=[-2, 2], lw=3, color=:black, label="posterior")
 end
 
-# ╔═╡ e427c10a-81d2-11eb-2921-e92d42389071
-md"## TODO: SORT OUT CALCULATION OF BAYES FACTOR"
+# ╔═╡ c9b579f2-81e6-11eb-2b6e-772227a6aff3
+md"![](https://raw.githubusercontent.com/drbenvincent/PY52007-guest-lectures/2021/Bayes_Freq/img/results_bayesian.png)
 
-# ╔═╡ 14c1d1a2-81ce-11eb-00d5-29c0ff4dc016
-function BF()
-	δ = 0
-	σ = 5
-	σ = std(data.drp)  # SORT THIS OUT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	H0 = pdf(Cauchy(0, 0.707), δ)
-	H1 = calc_posterior(δ, σ, data.drp[data.group .== "Treat"],
-						data.drp[data.group .== "Control"])
-	return H0, H1, H0/H1
-end;
+But let's interpret the JASP result:
+![](https://raw.githubusercontent.com/drbenvincent/PY52007-guest-lectures/f83a2a113af0f1258753e449a3e47276e4f8759c/Bayesian%20inference/img/bftable.png)
 
-# ╔═╡ 80cccaaa-81ce-11eb-3f13-319a8c066740
-BF()
+So for the JASP result, you could say:
+- The most likely effect size is $\delta=-0.568$, and the 95% Bayesian credible intervals do not overlap with zero (just).
+- Relative to my prior beliefs, the credibility in the null hypothesis ($\delta=0$) has gone _down_ by 2.2 times after having observed the data.
+- By convention, a Bayes Factor of 2.2 is classed as _anecdotal evidence_ and so I will not seek to draw strong research conclusions either way.
+- The 'dart board' part of the plot gives an indication of how surprised you should be if you throw a dart and it hits $H_0$ or $H_1$.
+
+Note: there are different schools of thought about the relative importance of Bayes Factors vs Bayesian credible intervals. But the tide seems to be in favour of Bayes Factors when it comes to hypothesis testing.
+"
+
+# ╔═╡ f2dcfd90-81e2-11eb-2e7f-57e0c331045e
+md"If you are interested in this particular way of explaining the Bayesian approach, then I would recommend a previous [Bayesian inference notebook](https://github.com/drbenvincent/PY52007-guest-lectures/blob/2021/Bayesian%20inference/Bayesian_Inference_Part1.ipynb) which focusses on a linear regression example. There is also an accompanying [YouTube video](https://www.youtube.com/watch?v=OwQnUr6rLHA)." 
+
+# ╔═╡ 4dafaa9e-81e1-11eb-1087-1130c9854643
+md"# Summary
+
+We can do hypothesis testing in the Frequentist and Bayesian approaches. There are similarities and differences.
+- Similar in having a level of evidence which is compared to a threshold (or thresholds) which is decided by convention.
+- But the Frequentist approach only allows you to make claims about data.
+- Very often, as scientists, we are interested in making claims about hypotheses.
+- The Bayesian approach allows you to do this.
+- It is conceptually simple, in terms of incorporating your prior beliefs and information from the data (via the likelihood) to arrive at your final belieds (the posterior.
+
+There are many other aspects of Frequentism vs Bayesianism which I've not touched upon here, but hopefully this has served as a good foundation to build upon.
+
+Any questions for me?"
 
 # ╔═╡ d032686a-8195-11eb-30f4-358f07266931
 md"# References
 - Dienes, Z. (2008). Understanding Psychology as a Science: An Introduction to Scientific and Statistical Inference. Palgrave Macmillan.
+- Rouder, J. N., Speckman, P. L., Sun, D., Morey, R. D., & Iverson, G. (2009). Bayesian t tests for accepting and rejecting the null hypothesis. Psychonomic Bulletin & Review, 16(2), 225–237. http://doi.org/10.3758/PBR.16.2.225
 "
 
 # ╔═╡ 8cd18344-81a2-11eb-342b-112549bb58b1
@@ -462,6 +499,12 @@ md"Code blocks below are just setup stuff to make eveything work. I am hiding th
 
 # ╔═╡ 82703e04-81a2-11eb-05e5-c168ca10f7c6
 hint(text) = Markdown.MD(Markdown.Admonition("hint", "Hint", [text]));
+
+# ╔═╡ 6473816a-81e1-11eb-33f0-9166ad7490c4
+hint(md"Some thoughts:
+- We often want to make claims about the credibility of hypotheses. We cannot do this under the Frequentist approach
+- Rejecting $H_0$ is not a very strong statement, rather than rejecting what is not the case, maybe it would be better if we could make statements about what _is_ the case.
+")
 
 # ╔═╡ a6bf5f2e-8198-11eb-2392-33dbf7ad80b2
 hint(md"$P(\text{head bitten off by shark} | \text{dead within 2 years}) \sim 0$")
@@ -489,6 +532,7 @@ danger(md"The results I present here are not exactly the same as in JASP. This i
 # ╟─de82e978-818c-11eb-11bf-ffa1249a932a
 # ╟─aa32c604-818f-11eb-0fac-c9794460f86e
 # ╟─d15e3ade-8193-11eb-2035-4bbf81b664c1
+# ╟─6473816a-81e1-11eb-33f0-9166ad7490c4
 # ╟─edc51308-8190-11eb-1045-11be03efce84
 # ╟─a6bf5f2e-8198-11eb-2392-33dbf7ad80b2
 # ╟─246aef2c-819b-11eb-2aa0-d7d5b1834e3c
@@ -502,6 +546,7 @@ danger(md"The results I present here are not exactly the same as in JASP. This i
 # ╟─09cb2994-81a2-11eb-3750-f5b6b92c9a7a
 # ╟─63e00578-81a2-11eb-23af-09b36db5ab85
 # ╟─ff3fbaf2-81a4-11eb-3794-5901c9c2e11e
+# ╠═c0e909ea-81e5-11eb-228d-91f889aff616
 # ╠═738a864c-81a2-11eb-0352-37fa8997ecc5
 # ╟─949dfcd8-81bd-11eb-051a-f9143fc71478
 # ╟─9e837d6c-81a5-11eb-1df2-4fd2c7a36f72
@@ -510,6 +555,7 @@ danger(md"The results I present here are not exactly the same as in JASP. This i
 # ╟─beacd850-81a7-11eb-11c8-c3733fcdc1ea
 # ╠═70ed51a6-81b3-11eb-2cc8-b59172453297
 # ╠═b8124ffc-81b3-11eb-2c19-ad5d4e868ff6
+# ╟─79eb800c-8244-11eb-22ba-09fa882a3ee7
 # ╠═db3df5a6-81a4-11eb-3259-6513e68aaa26
 # ╟─9d58e5cc-81b6-11eb-3433-bd02e2354dc6
 # ╟─eb38dd72-81a7-11eb-13a5-fb33865c1989
@@ -519,28 +565,28 @@ danger(md"The results I present here are not exactly the same as in JASP. This i
 # ╟─24e29984-81ad-11eb-1cc6-ffebec8641ff
 # ╟─11f76372-81a8-11eb-2ab2-3d2b6de88c5a
 # ╟─43ad5d44-81ae-11eb-0b30-451a156bcbcc
+# ╠═d8981e76-8244-11eb-2c8b-f55cb91169ea
+# ╟─cfa47eec-81e3-11eb-1658-5b4a58fe9bfd
 # ╠═437a9eea-81ae-11eb-0d6f-ef8073af86d9
-# ╠═17a5965c-81af-11eb-3a52-b3627fc436b8
-# ╠═43932faa-81ae-11eb-06a5-29bda5d2ce54
+# ╟─140ee084-8245-11eb-0d3b-3929a2b48b52
+# ╟─17a5965c-81af-11eb-3a52-b3627fc436b8
+# ╟─43932faa-81ae-11eb-06a5-29bda5d2ce54
 # ╟─db2435da-81a4-11eb-1af0-3d4c18386433
 # ╟─e2e518d8-81b9-11eb-2c55-1bdd73057d60
 # ╟─735d335e-81a2-11eb-2eaa-d9a8ce7e3a0d
-# ╠═73436ee2-81a2-11eb-3f5c-49655225012d
 # ╟─67938cda-81d4-11eb-2f44-1902dbe7586d
+# ╟─73436ee2-81a2-11eb-3f5c-49655225012d
 # ╠═97347b74-81d0-11eb-009b-33178b6218c3
-# ╟─472cf462-81d5-11eb-29c3-6b1e5a44e438
-# ╠═bcc5ef8e-81c7-11eb-2ce4-55d6fe7f407c
-# ╠═69ff41ac-81d5-11eb-00eb-05eae733a4ff
 # ╟─18aa5896-81d3-11eb-213b-7d8b0bfd743b
 # ╠═44381090-81ce-11eb-2a9f-65aee384155d
 # ╠═980d5fea-81c9-11eb-2f50-cbbe3d40e5e8
 # ╠═97f92084-81c9-11eb-35e0-dfef6a781db9
-# ╠═97e0354c-81c9-11eb-3ab2-b771d0bfeeb8
+# ╟─3d865c1c-81e6-11eb-2096-0f7ab41c44c5
 # ╟─b36d2060-81cc-11eb-3633-b17313552c9f
-# ╠═e427c10a-81d2-11eb-2921-e92d42389071
-# ╠═14c1d1a2-81ce-11eb-00d5-29c0ff4dc016
-# ╠═80cccaaa-81ce-11eb-3f13-319a8c066740
-# ╠═d032686a-8195-11eb-30f4-358f07266931
+# ╟─c9b579f2-81e6-11eb-2b6e-772227a6aff3
+# ╟─f2dcfd90-81e2-11eb-2e7f-57e0c331045e
+# ╟─4dafaa9e-81e1-11eb-1087-1130c9854643
+# ╟─d032686a-8195-11eb-30f4-358f07266931
 # ╟─8cd18344-81a2-11eb-342b-112549bb58b1
 # ╠═01591408-819d-11eb-3f81-73b53fa7e515
 # ╠═82703e04-81a2-11eb-05e5-c168ca10f7c6
