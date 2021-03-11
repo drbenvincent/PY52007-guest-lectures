@@ -26,6 +26,14 @@ Dr Benjamin T. Vincent
 NOTE: This session is an amalgamation of 2 previous lectures that have looked at [Hypothesis Testing](https://github.com/drbenvincent/PY52007-guest-lectures/blob/2021/Hypothesis%20testing/Hypothesis%20Testing.ipynb) in detail, and [Bayesian inference](https://github.com/drbenvincent/PY52007-guest-lectures/blob/2021/Bayesian%20inference/Bayesian_Inference_Part1.ipynb) in detail. This session is an attempt to combine these topics. So this session is not simply a combination of those previous sessions, we cover different examples and have different emphases. So it may be that in working through this material in your own time, going back to refer to these other sessions could be very useful as they go into more depth in certain places.
 "
 
+# ╔═╡ 2d66437e-8259-11eb-3e55-3d02b484250b
+md"## 🚨List of TODO's for Ben to further improve this notebook 🚨
+- Plot density in Bayes Factor plot properly, rather than normalised probability density.
+- Figure out how JASP deals with $\sigma$ to more closely replicate their result.
+- Add animated graphic where you can chance the Cauchy prior (mean and variance) to see the effect on the posterior.
+- Firm up my wording on the interpretation of Bayes Factors - evidence for $H_0$ and $H_1$ vs evidence of $H_0$ under prior and posterior.
+"
+
 # ╔═╡ de82e978-818c-11eb-11bf-ffa1249a932a
 md"
 ## The goal of this session
@@ -239,7 +247,7 @@ function t_statistic(x, y)
 end;
 
 # ╔═╡ 79eb800c-8244-11eb-22ba-09fa882a3ee7
-md"So let's use that to calculat the t-statistic for our data."
+md"So let's use that to calculate the t-statistic for our data."
 
 # ╔═╡ db3df5a6-81a4-11eb-3259-6513e68aaa26
 t_observed = t_statistic(data.drp[data.group .== "Treat"], 
@@ -529,6 +537,7 @@ danger(md"The results I present here are not exactly the same as in JASP. This i
 
 # ╔═╡ Cell order:
 # ╟─8b6ff28c-818a-11eb-2421-41fa4a9aeedd
+# ╟─2d66437e-8259-11eb-3e55-3d02b484250b
 # ╟─de82e978-818c-11eb-11bf-ffa1249a932a
 # ╟─aa32c604-818f-11eb-0fac-c9794460f86e
 # ╟─d15e3ade-8193-11eb-2035-4bbf81b664c1
