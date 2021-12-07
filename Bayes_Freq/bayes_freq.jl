@@ -417,6 +417,20 @@ Note that the effect size $\delta = \alpha / \sigma$
 # ╔═╡ 97347b74-81d0-11eb-009b-33178b6218c3
 effect_sizes = LinRange(-10, 10, 1000);
 
+# ╔═╡ 4a2f0aee-f953-41f4-b5ec-a0edd995075b
+# begin
+# 	treat = data.drp[data.group .== "Treat"]
+# 	control = data.drp[data.group .== "Control"]
+# 	σ = pooled_std(treat, control)
+# 	# calc_posterior(0, σ, treat, control)
+
+# 	delta = 0.0
+# 	lp = 0.0
+# 	lp += logpdf(Cauchy(0, 0.707), delta)
+# 	lp += sum(logpdf.(Normal(-(delta * σ)/2, σ), treat))
+# 	lp += sum(logpdf.(Normal((delta * σ)/2, σ), control))
+# end
+
 # ╔═╡ 18aa5896-81d3-11eb-213b-7d8b0bfd743b
 md"Calculate the posterior probability for a given effect size $\delta$."
 
@@ -427,8 +441,8 @@ function calc_posterior(δ, σ, treat, control)
 	# prior
 	lp += logpdf(Cauchy(0, 0.707), δ)
 	# likelihood
-	lp += sum(logpdf(Normal(-α/2, σ), treat))
-	lp += sum(logpdf(Normal(α/2, σ), control))
+	lp += sum(logpdf.(Normal(-α/2, σ), treat))
+	lp += sum(logpdf.(Normal(α/2, σ), control))
 	return exp(lp)  # return posterior, not the log posterior
 end;
 
@@ -454,7 +468,7 @@ The discrepancy is simply because I have not yet fully understood how they deal 
 # ╔═╡ b36d2060-81cc-11eb-3633-b17313552c9f
 begin
 	# plot prior
-	prior = pdf(Cauchy(0, 0.707), effect_sizes)
+	prior = pdf.(Cauchy(0, 0.707), effect_sizes)
 	prior_n = prior ./ sum(prior)  # Normalise
 	plot(effect_sizes, prior_n, lw=3, 
 		linestyle=:dash, color=:black, xlim=[-2, 2], label="Prior")
@@ -1744,8 +1758,8 @@ version = "0.9.1+5"
 # ╠═738a864c-81a2-11eb-0352-37fa8997ecc5
 # ╟─949dfcd8-81bd-11eb-051a-f9143fc71478
 # ╟─9e837d6c-81a5-11eb-1df2-4fd2c7a36f72
-# ╟─2c02ec26-81a5-11eb-1b3a-236ef387e110
-# ╟─565f84d4-81a5-11eb-2d75-45d0b0c999e1
+# ╠═2c02ec26-81a5-11eb-1b3a-236ef387e110
+# ╠═565f84d4-81a5-11eb-2d75-45d0b0c999e1
 # ╟─beacd850-81a7-11eb-11c8-c3733fcdc1ea
 # ╠═70ed51a6-81b3-11eb-2cc8-b59172453297
 # ╠═b8124ffc-81b3-11eb-2c19-ad5d4e868ff6
@@ -1771,6 +1785,7 @@ version = "0.9.1+5"
 # ╟─67938cda-81d4-11eb-2f44-1902dbe7586d
 # ╟─73436ee2-81a2-11eb-3f5c-49655225012d
 # ╠═97347b74-81d0-11eb-009b-33178b6218c3
+# ╠═4a2f0aee-f953-41f4-b5ec-a0edd995075b
 # ╟─18aa5896-81d3-11eb-213b-7d8b0bfd743b
 # ╠═44381090-81ce-11eb-2a9f-65aee384155d
 # ╠═980d5fea-81c9-11eb-2f50-cbbe3d40e5e8
