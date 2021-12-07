@@ -235,16 +235,16 @@ $s_p = \sqrt{ \frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1 +n_2 -2} }$
 "
 
 # ╔═╡ b8124ffc-81b3-11eb-2c19-ad5d4e868ff6
-function pooled_std(x, y)
-	numerator = (length(x) - 1) * var(x) + (length(y) - 1) * var(y)
-	denom = (length(x) + length(y)-2)
+function pooled_std(x₁, x₂)
+	numerator = (length(x₁) - 1) * var(x₁) + (length(x₂) - 1) * var(x₂)
+	denom = (length(x₁) + length(x₂)-2)
 	return √(numerator / denom)
 end;
 
 # ╔═╡ 70ed51a6-81b3-11eb-2cc8-b59172453297
-function t_statistic(x, y)
-	return (mean(x) - mean(y)) / 
-	(pooled_std(x, y) * sqrt(1/length(x) + 1/length(y)))
+function t_statistic(x₁, x₂)
+	return (mean(x₁) - mean(x₂)) / 
+	(pooled_std(x₁, x₂) * sqrt(1/length(x₁) + 1/length(x₂)))
 end;
 
 # ╔═╡ 79eb800c-8244-11eb-22ba-09fa882a3ee7
@@ -396,8 +396,6 @@ This is basically the same generative model as before. The only real difference 
 
 $\delta \sim \mathrm{Cauchy}(0, 0.707)$
 
-$\sigma = ???????$
-
 $\alpha = \delta \cdot \sigma$ 
 
 $x_i \sim \text{Normal} \Big( \mu - \frac{\alpha}{2}, \sigma \Big), i = 1, \ldots, N_{\text{treat}}$
@@ -405,6 +403,7 @@ $x_i \sim \text{Normal} \Big( \mu - \frac{\alpha}{2}, \sigma \Big), i = 1, \ldot
 $y_i \sim \text{Normal} \Big( \mu + \frac{\alpha}{2}, \sigma \Big), i = 1, \ldots, N_{\text{control}}$
 
 Let's look at these components:
+- ``\mu`` is the mean of the observed data.
 - ``\delta`` is the effect size and is defined as ``\delta = \alpha \cdot \sigma``.
 - ``\alpha`` is the distance between the group means.
 - ``\sigma`` is the standard deviation of the data.
@@ -417,30 +416,37 @@ Note that the effect size $\delta = \alpha / \sigma$
 # ╔═╡ 97347b74-81d0-11eb-009b-33178b6218c3
 effect_sizes = LinRange(-10, 10, 1000);
 
+# ╔═╡ bc761117-d929-4442-8d40-eddfd29ca1dd
+dx = (10 - -10)/1000
+
+# ╔═╡ 0fb60af3-3785-493b-b1f8-c4d7bdac3d6f
+normalize(x, dx) = x./(sum(x)*dx)
+
 # ╔═╡ 18aa5896-81d3-11eb-213b-7d8b0bfd743b
 md"Calculate the posterior probability for a given effect size $\delta$."
 
 # ╔═╡ 44381090-81ce-11eb-2a9f-65aee384155d
 function calc_posterior(δ, σ, treat, control)
+	μ = mean([treat; control])
 	lp = 0.0  # Note we sum log posteriors
 	α = δ * σ
 	# prior
 	lp += logpdf(Cauchy(0, 0.707), δ)
 	# likelihood
-	lp += sum(logpdf.(Normal(-α/2, σ), treat))
-	lp += sum(logpdf.(Normal(α/2, σ), control))
+	lp += sum(logpdf.(Normal(μ-(α/2), σ), treat))
+	lp += sum(logpdf.(Normal(μ+(α/2), σ), control))
 	return exp(lp)  # return posterior, not the log posterior
 end;
 
 # ╔═╡ 980d5fea-81c9-11eb-2f50-cbbe3d40e5e8
 function calc_posterior_for_many_effect_sizes(treat, control)
-	σ = pooled_std(treat, control)  # SORT THIS OUT !!!!!!!!!!!!!!!!!
+	σ = pooled_std(treat, control)
 	post = [calc_posterior(δ, σ, treat, control) for δ in effect_sizes]
-	return  post ./ sum(post)  # normalise
+	return normalize(post, dx)
 end;
 
 # ╔═╡ 97f92084-81c9-11eb-35e0-dfef6a781db9
-posterior_prob = calc_posterior_for_many_effect_sizes(
+posterior = calc_posterior_for_many_effect_sizes(
 	data.drp[data.group .== "Treat"],
 	data.drp[data.group .== "Control"]);
 
@@ -455,14 +461,13 @@ The discrepancy is simply because I have not yet fully understood how they deal 
 begin
 	# plot prior
 	prior = pdf.(Cauchy(0, 0.707), effect_sizes)
-	prior_n = prior ./ sum(prior)  # Normalise
-	plot(effect_sizes, prior_n, lw=3, 
+	plot(effect_sizes, prior, lw=3, 
 		linestyle=:dash, color=:black, xlim=[-2, 2], label="Prior")
-	plot!(xlabel="Effect size δ")
-	
 	# plot posterior
-	plot!(effect_sizes, posterior_prob, 
+	plot!(effect_sizes, posterior, 
 		xlim=[-2, 2], lw=3, color=:black, label="posterior")
+	
+	plot!(xlabel="Effect size δ", yticks=[0:0.2:1.4;])
 end
 
 # ╔═╡ c9b579f2-81e6-11eb-2b6e-772227a6aff3
@@ -491,7 +496,7 @@ We can do hypothesis testing in the Frequentist and Bayesian approaches. There a
 - But the Frequentist approach only allows you to make claims about data.
 - Very often, as scientists, we are interested in making claims about hypotheses.
 - The Bayesian approach allows you to do this.
-- It is conceptually simple, in terms of incorporating your prior beliefs and information from the data (via the likelihood) to arrive at your final belieds (the posterior.
+- It is conceptually simple, in terms of incorporating your prior beliefs and information from the data (via the likelihood) to arrive at your final beliefs (the posterior).
 
 There are many other aspects of Frequentism vs Bayesianism which I've not touched upon here, but hopefully this has served as a good foundation to build upon.
 
@@ -532,9 +537,6 @@ correct(md"The two-tailed p-value using our simulation approach is $p. We got a 
 
 # ╔═╡ 56ce5f38-81d4-11eb-227d-43aa021ab15e
 danger(text) = Markdown.MD(Markdown.Admonition("danger", "Warning!", [text]));
-
-# ╔═╡ 67938cda-81d4-11eb-2f44-1902dbe7586d
-danger(md"The results I present here are not exactly the same as in JASP. This is because I am not yet 100% sure how they deal with the $\sigma$ variable. But it is close enough to get the idea! I will continue on this front and update the notebook when I figure it out.")
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1768,9 +1770,10 @@ version = "0.9.1+5"
 # ╟─db2435da-81a4-11eb-1af0-3d4c18386433
 # ╟─e2e518d8-81b9-11eb-2c55-1bdd73057d60
 # ╟─735d335e-81a2-11eb-2eaa-d9a8ce7e3a0d
-# ╟─67938cda-81d4-11eb-2f44-1902dbe7586d
 # ╟─73436ee2-81a2-11eb-3f5c-49655225012d
 # ╠═97347b74-81d0-11eb-009b-33178b6218c3
+# ╠═bc761117-d929-4442-8d40-eddfd29ca1dd
+# ╠═0fb60af3-3785-493b-b1f8-c4d7bdac3d6f
 # ╟─18aa5896-81d3-11eb-213b-7d8b0bfd743b
 # ╠═44381090-81ce-11eb-2a9f-65aee384155d
 # ╠═980d5fea-81c9-11eb-2f50-cbbe3d40e5e8
