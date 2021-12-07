@@ -28,9 +28,8 @@ NOTE: This session is an amalgamation of 2 previous lectures that have looked at
 "
 
 # ╔═╡ 2d66437e-8259-11eb-3e55-3d02b484250b
-md"## 🚨List of TODO's for Ben to further improve this notebook 🚨
-- Plot density in Bayes Factor plot properly, rather than normalised probability density.
-- Figure out how JASP deals with $\sigma$ to more closely replicate their result.
+md"### 🚨 List of TODO's for Ben to further improve this notebook 🚨
+- Pimp the Bayes Factor plot.
 - Add animated graphic where you can chance the Cauchy prior (mean and variance) to see the effect on the posterior.
 - Firm up my wording on the interpretation of Bayes Factors - evidence for $H_0$ and $H_1$ vs evidence of $H_0$ under prior and posterior.
 "
@@ -465,7 +464,7 @@ begin
 		linestyle=:dash, color=:black, xlim=[-2, 2], label="Prior")
 	# plot posterior
 	plot!(effect_sizes, posterior, 
-		xlim=[-2, 2], lw=3, color=:black, label="posterior")
+		xlim=[-2, 2], lw=3, color=:black, label="Posterior")
 	
 	plot!(xlabel="Effect size δ", yticks=[0:0.2:1.4;])
 end
