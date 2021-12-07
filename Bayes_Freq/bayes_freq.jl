@@ -417,20 +417,6 @@ Note that the effect size $\delta = \alpha / \sigma$
 # ╔═╡ 97347b74-81d0-11eb-009b-33178b6218c3
 effect_sizes = LinRange(-10, 10, 1000);
 
-# ╔═╡ 4a2f0aee-f953-41f4-b5ec-a0edd995075b
-# begin
-# 	treat = data.drp[data.group .== "Treat"]
-# 	control = data.drp[data.group .== "Control"]
-# 	σ = pooled_std(treat, control)
-# 	# calc_posterior(0, σ, treat, control)
-
-# 	delta = 0.0
-# 	lp = 0.0
-# 	lp += logpdf(Cauchy(0, 0.707), delta)
-# 	lp += sum(logpdf.(Normal(-(delta * σ)/2, σ), treat))
-# 	lp += sum(logpdf.(Normal((delta * σ)/2, σ), control))
-# end
-
 # ╔═╡ 18aa5896-81d3-11eb-213b-7d8b0bfd743b
 md"Calculate the posterior probability for a given effect size $\delta$."
 
@@ -1785,7 +1771,6 @@ version = "0.9.1+5"
 # ╟─67938cda-81d4-11eb-2f44-1902dbe7586d
 # ╟─73436ee2-81a2-11eb-3f5c-49655225012d
 # ╠═97347b74-81d0-11eb-009b-33178b6218c3
-# ╠═4a2f0aee-f953-41f4-b5ec-a0edd995075b
 # ╟─18aa5896-81d3-11eb-213b-7d8b0bfd743b
 # ╠═44381090-81ce-11eb-2a9f-65aee384155d
 # ╠═980d5fea-81c9-11eb-2f50-cbbe3d40e5e8
