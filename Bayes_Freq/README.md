@@ -6,4 +6,6 @@
 - enter package mode with `]`
 - activate environment with `activate .`
 - get things going with `instantiate` (also in package mode)
-- then start a Pluto notebook with `using Pluto`
+- then start a Pluto notebook with:
+  - `using Pluto`
+  - `Pluto.run()`
