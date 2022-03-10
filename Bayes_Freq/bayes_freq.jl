@@ -28,7 +28,7 @@ NOTE: This session is an amalgamation of 2 previous lectures that have looked at
 "
 
 # ╔═╡ 2d66437e-8259-11eb-3e55-3d02b484250b
-md"### 🚨 List of TODO's for Ben to further improve this notebook 🚨
+md"#### 🚨 TODO's for Ben to further improve this notebook 🚨
 - Pimp the Bayes Factor plot.
 - Add animated graphic where you can chance the Cauchy prior (mean and variance) to see the effect on the posterior.
 - Firm up my wording on the interpretation of Bayes Factors - evidence for $H_0$ and $H_1$ vs evidence of $H_0$ under prior and posterior.
@@ -70,9 +70,9 @@ Under the Frequentist approach, the hypothesis (or state of the world) is assume
 The downward arrow in this diagram symbolicalises what we know about what processes occured that led to our dataset - we can call this the data generating process. For the moment we will keep this somewhat vauge until we look at a concrete example below. Having said that, it is not a difficult idea. It could be as simple as saying: _I believe the data from group 1 and group 2 are both normally distributed around zero_.
 
 ### Making claims about the data with the likelihood
-We are able to do this, we can simulate what we would expect to see _if_ the null hypothesis is true. You can imagine that this would give us slightly different datasets, and thus slightly different t-statistic values. This basically describes what we would expect to see given the null hypothesis is true. This is what is known as the likelihood, $P( \mathrm{data} | \mathrm{H_0})$.
+We can simulate what we would expect to see _if_ the null hypothesis is true. You can imagine that this would give us slightly different datasets, and thus slightly different t-statistic values. This basically describes what we would expect to see given the null hypothesis is true. This is what is known as the likelihood, $P( \mathrm{data} | \mathrm{H_0})$.
 
-What is the likelihood? The most important thing you need to know about the likelihood is that it is a claim about the likelihood of observing some particular data according to the particular hypothesis under consideration, in this case $H_0$. This is both a good thing and a bad thing. 
+What is the likelihood? The most important thing you need to know about the likelihood is that it is a claim about the probability of observing some particular data according to the particular hypothesis under consideration, in this case $H_0$. This is both a good thing and a bad thing. 
 
 The likelihood is very useful in telling us how likely it is that we would have observed something (like a t-statistic) under the null hypothesis. 
 - If $P( \mathrm{data} | \mathrm{H_0})$ is a very low number, then we know that the data is not very consistent with $H_0$
@@ -104,7 +104,7 @@ The Bayesian approach builds upon what we have looked at before, namely the data
 
 ### Understanding how the likelihood and prior are different
 In a way, it is clear that:
-- the likelihood, $P( \mathrm{data} | \mathrm{hypothesis})$ and $P( \mathrm{hypothesis} | \mathrm{data})$, is about how consistent a set of data are with a given hypothesis and that
+- the likelihood, $P( \mathrm{data} | \mathrm{hypothesis})$, is about how consistent a set of data are with a given hypothesis and that
 - the posterior, $P( \mathrm{hypothesis} | \mathrm{data})$, is about how consistent a hypothesis is with some data. 
 
 But it is good to dig into this. A great example can be found in Understanding Psychology as a Science by Zoltan Dienes. We can consider the probability that someone will have died within 2 years, given they have had their head bitten off by a shark. It is not often we can be 100% sure of something, but this is a good example where we would be extremely confident:
@@ -125,12 +125,11 @@ If a Bayesian wants to make claims about hypotheses, not about how consistent da
 
 Funnily enough, with Baye's Equation.
 
-$P(\text{hypothesis} | \text{data}) \propto P(\text{data} | \text{hypothesis}) \cdot P(\text{hypothesis})$
-
-where:
-- ``P(\text{hypothesis} | \text{data})`` is the posterior 
-- ``P(\text{data} | \text{hypothesis})`` is the likelihood
-- ``P(\text{hypothesis})`` is the prior
+$\underbrace{P(\text{hypothesis} | \text{data})}_{posterior} 
+\propto 
+\underbrace{P(\text{data} | \text{hypothesis})}_{likelihood} 
+\cdot 
+\underbrace{P(\text{hypothesis})}_{prior}$
 
 Let's just recap, because we are getting into equations, but what we are doing is conceptually very simple...
 
@@ -167,7 +166,7 @@ md"Now we will go forth and apply what we have learnt to our T-Test case study."
 
 # ╔═╡ 63e00578-81a2-11eb-23af-09b36db5ab85
 md"# Part II - Frequentist T-Test
-So far we have introduced our motivating example of an independent samples T-Test. We saw that the output you get in JASP or Frequentist and Bayesian version of the test are rather different. We then started on our journey of understanding the differences between the approaches on a conceptual level. Of particular relevance for the Frequentist approach was the likelihood term, which can be desribed as the data generating process.
+So far we have introduced our motivating example of an independent samples T-Test. We saw that the output you get in JASP or Frequentist and Bayesian version of the test are rather different. We then started on our journey of understanding the differences between the approaches on a conceptual level. Of particular relevance for the Frequentist approach was the likelihood term, which can be described as the data generating process.
 
 Here we return to our T-Test example and show, through simulation approaches, exactly what the Frequentist approach does. As I mentioned in the beginning, I have a existing material on [Hypothesis testing](https://github.com/drbenvincent/PY52007-guest-lectures/blob/2021/Hypothesis%20testing/Hypothesis%20Testing.ipynb), there will be some overlap, but you may wish to refer to that for more detail, and a different example.
 
@@ -235,9 +234,8 @@ $s_p = \sqrt{ \frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1 +n_2 -2} }$
 
 # ╔═╡ b8124ffc-81b3-11eb-2c19-ad5d4e868ff6
 function pooled_std(x₁, x₂)
-	numerator = (length(x₁) - 1) * var(x₁) + (length(x₂) - 1) * var(x₂)
-	denom = (length(x₁) + length(x₂)-2)
-	return √(numerator / denom)
+	n₁, n₂  = length(x₁), length(x₂)
+	return √(((n₁ - 1) * var(x₁) + (n₂ - 1) * var(x₂)) / (n₁ + n₂ - 2))
 end;
 
 # ╔═╡ 70ed51a6-81b3-11eb-2cc8-b59172453297
@@ -306,15 +304,33 @@ md"Now what we want to do is to repeat this simulation many times to calculate a
 5. Work out the proportion of the time the observed t-statistic is greater than what we'd expect under $H_0$.
 " 
 
+# ╔═╡ c0e00728-663e-4de3-ae44-3ee359c0f953
+function simulate(n_simulations, N_treat, N_control)
+	α = 0
+	x, y = generative_process(α, N_treat, N_control)
+	return t_statistic(x, y)
+end
+
 # ╔═╡ d8981e76-8244-11eb-2c8b-f55cb91169ea
+# function many_simulations(n_simulations, N_treat, N_control)
+# 	t_vec = []
+# 	for n = 1 : n_simulations
+# 		# Note: we assume alpha = 0
+# 		x, y = generative_process(0, N_treat, N_control)
+# 		append!(t_vec, t_statistic(x, y))
+# 	end
+# 	return t_vec
+# end;
+
 function many_simulations(n_simulations, N_treat, N_control)
-	t_vec = []
-	for n = 1 : n_simulations
-		# Note: we assume alpha = 0
-		x, y = generative_process(0, N_treat, N_control)
-		append!(t_vec, t_statistic(x, y))
-	end
-	return t_vec
+	return [simulate(n_simulations, N_treat, N_control) for n = 1:n_simulations]
+	# t_vec = []
+	# for n = 1 : n_simulations
+	# 	# Note: we assume alpha = 0
+	# 	x, y = generative_process(0, N_treat, N_control)
+	# 	append!(t_vec, t_statistic(x, y))
+	# end
+	# return t_vec
 end;
 
 # ╔═╡ cfa47eec-81e3-11eb-1658-5b4a58fe9bfd
@@ -329,14 +345,12 @@ end;
 md"Choose the number of simulations with the slider:"
 
 # ╔═╡ 17a5965c-81af-11eb-3a52-b3627fc436b8
-@bind n_simulations Slider(100 : 100 : 500_000)
+@bind n_simulations Slider(10 : 10 : 10_000)
 
 # ╔═╡ 43932faa-81ae-11eb-06a5-29bda5d2ce54
 begin
 	t_vec = many_simulations(n_simulations, N_treat, N_control)
-	
 	p = p_two_tailed(t_observed, t_vec)
-	
 	density(t_vec, title="t-statistic under H0\n p=$p\n $n_simulations simulations", 
 			label="", lw=3)
 	plot!(xlabel="t-statistic value", xlim=[-4, 4])
@@ -426,8 +440,10 @@ md"Calculate the posterior probability for a given effect size $\delta$."
 
 # ╔═╡ 44381090-81ce-11eb-2a9f-65aee384155d
 function calc_posterior(δ, σ, treat, control)
+	# Note we sum log posteriors rather than multiply raw posteriors
+	# Mathematically this is the same thing, but numerically it is more stable
 	μ = mean([treat; control])
-	lp = 0.0  # Note we sum log posteriors
+	lp = 0.0  
 	α = δ * σ
 	# prior
 	lp += logpdf(Cauchy(0, 0.707), δ)
@@ -1766,18 +1782,19 @@ version = "0.9.1+5"
 # ╟─24e29984-81ad-11eb-1cc6-ffebec8641ff
 # ╟─11f76372-81a8-11eb-2ab2-3d2b6de88c5a
 # ╟─43ad5d44-81ae-11eb-0b30-451a156bcbcc
+# ╠═c0e00728-663e-4de3-ae44-3ee359c0f953
 # ╠═d8981e76-8244-11eb-2c8b-f55cb91169ea
 # ╟─cfa47eec-81e3-11eb-1658-5b4a58fe9bfd
 # ╠═437a9eea-81ae-11eb-0d6f-ef8073af86d9
 # ╟─140ee084-8245-11eb-0d3b-3929a2b48b52
-# ╟─17a5965c-81af-11eb-3a52-b3627fc436b8
+# ╠═17a5965c-81af-11eb-3a52-b3627fc436b8
 # ╟─43932faa-81ae-11eb-06a5-29bda5d2ce54
 # ╟─db2435da-81a4-11eb-1af0-3d4c18386433
 # ╟─e2e518d8-81b9-11eb-2c55-1bdd73057d60
 # ╟─735d335e-81a2-11eb-2eaa-d9a8ce7e3a0d
 # ╟─73436ee2-81a2-11eb-3f5c-49655225012d
 # ╠═97347b74-81d0-11eb-009b-33178b6218c3
-# ╠═bc761117-d929-4442-8d40-eddfd29ca1dd
+# ╟─bc761117-d929-4442-8d40-eddfd29ca1dd
 # ╠═0fb60af3-3785-493b-b1f8-c4d7bdac3d6f
 # ╟─18aa5896-81d3-11eb-213b-7d8b0bfd743b
 # ╠═44381090-81ce-11eb-2a9f-65aee384155d
